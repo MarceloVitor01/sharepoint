@@ -75,7 +75,7 @@ def excluir_versoes(links_pastas: pd.Series):
                     # Procura o 'href' do link e aguarda 2s
                     print('\nAcessando os links encontrados...')
                     link_elemento = elemento.get_attribute('href')
-                    sleep(2)
+                    sleep(5)
 
                     # Acessa o link 'Histórico de Versões' e aguarda 5s
                     driver.execute_script(
@@ -85,20 +85,26 @@ def excluir_versoes(links_pastas: pd.Series):
                     # Procura o link 'Excluir Todas as Versões' e aguarda 5s
                     print('\nProcurando o link "Excluir Todas as Versões"...')
                     link_excluir = driver.find_element(
-                        By.XPATH, "//a[text()='Excluir Todas as Versões']")
+                        By.XPATH, "//a[@accesskey='X']")
                     sleep(5)
 
-                    # Clica no botão 'Excluir Todas as Versões' e aguarda 2s
-                    print('\nExcluindo as versões...')
-                    link_excluir.click()
-                    sleep(2)
+                    if link_excluir:
+                        # Clica no botão 'Excluir Todas as Versões' e aguarda 2s
+                        print('\nExcluindo as versões...')
+                        link_excluir.click()
+                        sleep(5)
 
-                    # Lida com o popup de confirmação
-                    alert = Alert(driver)
-                    alert.accept()
+                        # Lida com o popup de confirmação
+                        alert = Alert(driver)
+                        alert.accept()
 
-                    print('\nExcluído com sucesso!')
-                    print('=' * 200)
+                        print('\nExcluído com sucesso!')
+                        print('=' * 200)
+
+                    else:
+                        print(
+                            '\nLink "Excluir Todas as Versões" não foi encontrado na página')
+                        print('=' * 200)
 
             else:
                 print('\nLink "Histórico de Versões" não foi encontrado na página')
@@ -111,6 +117,3 @@ def excluir_versoes(links_pastas: pd.Series):
     print('=' * 200)
 
     driver.quit()
-
-
-excluir_versoes(links)
