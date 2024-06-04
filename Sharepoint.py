@@ -6,6 +6,9 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.alert import Alert
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 from time import sleep
 
 dados = pd.read_excel('pastas.xlsx').convert_dtypes()
@@ -62,7 +65,8 @@ def excluir_versoes(links_pastas: pd.Series):
         sleep(15)
 
         # Tenta encontrar o link 'Histórico de Versões' e aguarda 5
-        print('Procurando o botão "Histórico de Versões"...')
+        print(f'\nProcurando o botão "Histórico de Versões" em {link}...')
+        print('=' * 200)
         try:
             elementos = driver.find_elements(
                 By.PARTIAL_LINK_TEXT, 'Histórico de Versões')
@@ -70,45 +74,67 @@ def excluir_versoes(links_pastas: pd.Series):
 
             # Se encontrou, acessa o link para excluir as versões
             if elementos:
+                print('\nAo menos um "Histórico de Versões" foi encontrado')
+                print('=' * 200)
                 # Percorre todos os elementos encontrados
                 for elemento in elementos:
-                    # Procura o 'href' do link e aguarda 2s
-                    print('\nAcessando os links encontrados...')
+                    # Procura o 'href' do link e aguarda 5s
                     link_elemento = elemento.get_attribute('href')
-                    sleep(5)
+                    print(
+                        f'\nAcessando os link encontrado em {link_elemento}...')
 
-                    # Acessa o link 'Histórico de Versões' e aguarda 5s
+                    # Abre o link em uma nova aba
                     driver.execute_script(
                         "window.open(arguments[0]);", link_elemento)
+
+                    # Espera até que a nova aba esteja disponível
+                    WebDriverWait(driver, 10).until(
+                        EC.number_of_windows_to_be(2))
+
+                    # Obtém todas as alças (handles) das abas
+                    handles = driver.window_handles
+                    # Alterna para a nova aba
+                    driver.switch_to.window(handles[1])
+
+                    # Espera mais 5 segundos para garantir que a nova aba seja carregada
                     sleep(5)
 
                     # Procura o link 'Excluir Todas as Versões' e aguarda 5s
                     print('\nProcurando o link "Excluir Todas as Versões"...')
-                    link_excluir = driver.find_element(
-                        By.XPATH, "//a[@accesskey='X']")
-                    sleep(5)
+                    try:
+                        link_excluir = driver.find_element(
+                            By.XPATH, "//a[@accesskey='X']")
+                        if link_excluir:
+                            # Clica no botão 'Excluir Todas as Versões' e aguarda 5s
+                            print('\nExcluindo as versões...')
+                            link_excluir.click()
+                            sleep(5)
 
-                    if link_excluir:
-                        # Clica no botão 'Excluir Todas as Versões' e aguarda 2s
-                        print('\nExcluindo as versões...')
-                        link_excluir.click()
-                        sleep(5)
+                            # Lida com o popup de confirmação
+                            alert = Alert(driver)
+                            alert.accept()
 
-                        # Lida com o popup de confirmação
-                        alert = Alert(driver)
-                        alert.accept()
+                            print('\nExcluído com sucesso!')
+                            print('=' * 200)
 
-                        print('\nExcluído com sucesso!')
-                        print('=' * 200)
-
-                    else:
+                    except Exception as e:
                         print(
-                            '\nLink "Excluir Todas as Versões" não foi encontrado na página')
+                            f'\nLink "Excluir Todas as Versões" não encontrado? {e}')
                         print('=' * 200)
+
+                    # Fecha a nova aba
+                    driver.close()
+
+                    # Volta para a aba principal
+                    driver.switch_to.window(handles[0])
 
             else:
                 print('\nLink "Histórico de Versões" não foi encontrado na página')
                 print('=' * 200)
+
+        except TimeoutException:
+            print(f'\nTimeout ao tentar acessar {link}')
+            print(f'Erro: {erro}')
 
         except Exception as erro:
             print(f'Erro: {erro}')
