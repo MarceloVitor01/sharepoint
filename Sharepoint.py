@@ -11,17 +11,11 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from time import sleep
 
-dados = pd.read_excel('pastas.xlsx').convert_dtypes()
 
-pastas = dados[dados['Tipo de Item'] == 'Pasta']
-
-links = pastas['Link']
-
-
-def ordenar_arquivos():
+def ordenar_arquivos(data_frame: pd.DataFrame):
     """Função para ordenar os arquivos com base no espaço ocupado"""
 
-    arquivos = pastas[pastas['Tipo de Item'] == 'Pasta']
+    arquivos = data_frame[data_frame['Tipo de Item'] == 'Pasta']
 
     # Agrupado por arquivos
     arquivos_ordenados = arquivos.sort_values(
@@ -34,7 +28,7 @@ def ordenar_arquivos():
         arquivos_ordenados, 'Arquivos_SharePoint_Por_Tamanho')
 
 
-def gerar_link(caminho, nome):
+def gerar_link(caminho):
     """Função para gerar os links das pastas
 
     Chamada da função: dataframe.apply(lambda row: teste(row['Caminho'], row['Nome']), axis=1)"""
@@ -43,9 +37,9 @@ def gerar_link(caminho, nome):
     inicio_link = caminho[:23]
     meio_link = '_layouts/15/storman.aspx?root='
     final_link = quote(str(caminho)[23:])
-    local_pasta = quote(str(nome))
+    # local_pasta = quote(str(nome))
 
-    link = f'{base_link}{inicio_link}{meio_link}{final_link}/{local_pasta}'
+    link = f'{base_link}{inicio_link}{meio_link}{final_link}'
 
     return link
 
@@ -62,7 +56,7 @@ def excluir_versoes(links_pastas: pd.Series):
     for link in links_pastas:
         # Acessa o link da pasta e aguarda 15s
         driver.get(link)
-        sleep(15)
+        sleep(30)
 
         # Tenta encontrar o link 'Histórico de Versões' e aguarda 5
         print(f'\nProcurando o botão "Histórico de Versões" em {link}...')
@@ -70,7 +64,7 @@ def excluir_versoes(links_pastas: pd.Series):
         try:
             elementos = driver.find_elements(
                 By.PARTIAL_LINK_TEXT, 'Histórico de Versões')
-            sleep(5)
+            # sleep(5)
 
             # Se encontrou, acessa o link para excluir as versões
             if elementos:
@@ -81,7 +75,7 @@ def excluir_versoes(links_pastas: pd.Series):
                     # Procura o 'href' do link e aguarda 5s
                     link_elemento = elemento.get_attribute('href')
                     print(
-                        f'\nAcessando os link encontrado em {link_elemento}...')
+                        f'\nAcessando o link encontrado em {link_elemento}...')
 
                     # Abre o link em uma nova aba
                     driver.execute_script(
@@ -97,7 +91,7 @@ def excluir_versoes(links_pastas: pd.Series):
                     driver.switch_to.window(handles[1])
 
                     # Espera mais 5 segundos para garantir que a nova aba seja carregada
-                    sleep(5)
+                    # sleep(5)
 
                     # Procura o link 'Excluir Todas as Versões' e aguarda 5s
                     print('\nProcurando o link "Excluir Todas as Versões"...')
@@ -108,7 +102,7 @@ def excluir_versoes(links_pastas: pd.Series):
                             # Clica no botão 'Excluir Todas as Versões' e aguarda 5s
                             print('\nExcluindo as versões...')
                             link_excluir.click()
-                            sleep(5)
+                            # sleep(5)
 
                             # Lida com o popup de confirmação
                             alert = Alert(driver)
@@ -134,12 +128,16 @@ def excluir_versoes(links_pastas: pd.Series):
 
         except TimeoutException:
             print(f'\nTimeout ao tentar acessar {link}')
-            print(f'Erro: {erro}')
-
-        except Exception as erro:
-            print(f'Erro: {erro}')
+            print('=' * 200)
 
     input('\nPressione Enter para encerrar a execução...')
     print('=' * 200)
 
     driver.quit()
+
+
+arquivos = pd.read_excel('arquivos_sharepoint.xlsx').convert_dtypes()
+
+links = list(arquivos['Link'].unique())
+
+excluir_versoes(links_pastas=links)
