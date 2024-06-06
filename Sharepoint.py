@@ -11,10 +11,10 @@ from selenium.common.exceptions import TimeoutException
 from time import sleep
 
 
-def ordenar_arquivos(data_frame: pd.DataFrame):
+def ordenar_arquivos():
     """Função para ordenar os arquivos com base no espaço ocupado"""
 
-    dados = pd.read_excel('consulta_sharepoint.xlsx').convert_dtypes()
+    data_frame = pd.read_excel('consulta_sharepoint.xlsx').convert_dtypes()
 
     arquivos = data_frame[data_frame['Tipo de Item'] == 'Item']
 
@@ -30,9 +30,7 @@ def ordenar_arquivos(data_frame: pd.DataFrame):
 
 
 def gerar_link(caminho) -> str:
-    """Função para gerar os links das pastas
-
-    Chamada da função: dataframe.apply(lambda row: teste(row['Caminho'], row['Nome']), axis=1)"""
+    """Função para gerar os links das pastas"""
 
     base_link = 'https://cgugovbr.sharepoint.com/'
     inicio_link = caminho[:23]
@@ -57,7 +55,7 @@ def calcula_porcentagem(sucesso: int, erro: int, total: int) -> str:
     return porcentagem
 
 
-def excluir_versoes(links_pastas: pd.Series):
+def excluir_versoes(links_pastas: list):
     """Função para excluir as versões dos arquivos"""
 
     # Define as opções do navegador
@@ -162,6 +160,4 @@ def excluir_versoes(links_pastas: pd.Series):
 
 arquivos = pd.read_excel('arquivos_sharepoint.xlsx').convert_dtypes()
 
-links = list(arquivos['Link'].unique())
-
-excluir_versoes(links_pastas=links)
+links = arquivos['Link'].unique()
