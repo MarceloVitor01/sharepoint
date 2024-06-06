@@ -14,7 +14,9 @@ from time import sleep
 def ordenar_arquivos(data_frame: pd.DataFrame):
     """Função para ordenar os arquivos com base no espaço ocupado"""
 
-    arquivos = data_frame[data_frame['Tipo de Item'] == 'Pasta']
+    dados = pd.read_excel('consulta_sharepoint.xlsx').convert_dtypes()
+
+    arquivos = data_frame[data_frame['Tipo de Item'] == 'Item']
 
     # Agrupado por arquivos
     arquivos_ordenados = arquivos.sort_values(
@@ -24,7 +26,7 @@ def ordenar_arquivos(data_frame: pd.DataFrame):
         FuncoesNumericas.converter_byte)
 
     FuncoesDataFrame.gera_excel(
-        arquivos_ordenados, 'Arquivos_SharePoint_Por_Tamanho')
+        arquivos_ordenados, 'pastas_sharepoint')
 
 
 def gerar_link(caminho) -> str:
@@ -43,14 +45,14 @@ def gerar_link(caminho) -> str:
     return link
 
 
-def calcula_porcentagem(quantidade_sucesso: int, quantidade_erro: int, total: int) -> str:
+def calcula_porcentagem(sucesso: int, erro: int, total: int) -> str:
     if total == 0:
         raise ValueError('O valor total não pode ser zero.')
 
-    calculo_sucesso = (quantidade_sucesso / total) * 100
-    calculo_erro = (quantidade_erro / total) * 100
+    calculo_sucesso = (sucesso / total) * 100
+    calculo_erro = (erro / total) * 100
 
-    porcentagem = f'''Já foram realizadas {quantidade_sucesso} exclusões, ou seja, {calculo_sucesso:.2f}% do total {total}. Houveram {quantidade_erro} erros, ou seja, {calculo_erro:.2f}% do total'''
+    porcentagem = f'''Já foram realizadas {sucesso} exclusões, ou seja, {calculo_sucesso:.2f}% do total {total}. Houveram {erro} erros, ou seja, {calculo_erro:.2f}% do total'''
 
     return porcentagem
 
