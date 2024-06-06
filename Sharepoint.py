@@ -28,7 +28,7 @@ def ordenar_arquivos(data_frame: pd.DataFrame):
         arquivos_ordenados, 'Arquivos_SharePoint_Por_Tamanho')
 
 
-def gerar_link(caminho):
+def gerar_link(caminho) -> str:
     """Função para gerar os links das pastas
 
     Chamada da função: dataframe.apply(lambda row: teste(row['Caminho'], row['Nome']), axis=1)"""
@@ -44,6 +44,18 @@ def gerar_link(caminho):
     return link
 
 
+def calcula_porcentagem(quantidade: int, total: int) -> str:
+    if total == 0:
+        raise ValueError('O valor total não pode ser zero.')
+
+    calculo = (quantidade / total) * 100
+
+    porcentagem = f'''Já foram realizadas {
+        quantidade} exclusões, ou seja, {calculo:.2f}% do total {total}'''
+
+    return porcentagem
+
+
 def excluir_versoes(links_pastas: pd.Series):
     """Função para excluir as versões dos arquivos"""
 
@@ -52,15 +64,23 @@ def excluir_versoes(links_pastas: pd.Series):
     options.add_experimental_option("detach", True)
     driver = webdriver.Chrome(options=options)
 
+    url_login = 'https://cgugovbr.sharepoint.com/sites/ou-sfc-dg-cgplag/_layouts/15/storman.aspx'
+
+    driver.get(url_login)
+    input('Por favor, faça o login manualmente e, em seguida, pressione Enter para continuar...')
+
+    cont = 0
+    total = len(links_pastas)
+
     # Percorre todos os links das pastas
     for link in links_pastas:
         # Acessa o link da pasta e aguarda 15s
         driver.get(link)
-        sleep(30)
+        sleep(2)
 
         # Tenta encontrar o link 'Histórico de Versões' e aguarda 5
-        print(f'\nProcurando o botão "Histórico de Versões" em {link}...')
-        print('=' * 200)
+        # print(f'\nProcurando o botão "Histórico de Versões" em {link}...')
+        # print('=' * 200)
         try:
             elementos = driver.find_elements(
                 By.PARTIAL_LINK_TEXT, 'Histórico de Versões')
@@ -68,14 +88,10 @@ def excluir_versoes(links_pastas: pd.Series):
 
             # Se encontrou, acessa o link para excluir as versões
             if elementos:
-                print('\nAo menos um "Histórico de Versões" foi encontrado')
-                print('=' * 200)
                 # Percorre todos os elementos encontrados
                 for elemento in elementos:
                     # Procura o 'href' do link e aguarda 5s
                     link_elemento = elemento.get_attribute('href')
-                    print(
-                        f'\nAcessando o link encontrado em {link_elemento}...')
 
                     # Abre o link em uma nova aba
                     driver.execute_script(
@@ -94,22 +110,17 @@ def excluir_versoes(links_pastas: pd.Series):
                     # sleep(5)
 
                     # Procura o link 'Excluir Todas as Versões' e aguarda 5s
-                    print('\nProcurando o link "Excluir Todas as Versões"...')
                     try:
                         link_excluir = driver.find_element(
                             By.XPATH, "//a[@accesskey='X']")
                         if link_excluir:
                             # Clica no botão 'Excluir Todas as Versões' e aguarda 5s
-                            print('\nExcluindo as versões...')
                             link_excluir.click()
                             # sleep(5)
 
                             # Lida com o popup de confirmação
                             alert = Alert(driver)
                             alert.accept()
-
-                            print('\nExcluído com sucesso!')
-                            print('=' * 200)
 
                     except Exception as e:
                         print(
@@ -129,6 +140,9 @@ def excluir_versoes(links_pastas: pd.Series):
         except TimeoutException:
             print(f'\nTimeout ao tentar acessar {link}')
             print('=' * 200)
+
+        cont += 1
+        print(calcula_porcentagem(cont, total))
 
     input('\nPressione Enter para encerrar a execução...')
     print('=' * 200)
