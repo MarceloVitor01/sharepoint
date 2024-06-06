@@ -1,5 +1,5 @@
 import pandas as pd
-from funcoes import FuncoesNumericas, FuncoesDataFrame
+# from funcoes import FuncoesNumericas, FuncoesDataFrame
 from urllib.parse import quote
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -9,6 +9,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from time import sleep
+import PySimpleGUI as sg
 
 
 def ordenar_arquivos():
@@ -18,15 +19,14 @@ def ordenar_arquivos():
 
     arquivos = data_frame[data_frame['Tipo de Item'] == 'Item']
 
-    # Agrupado por arquivos
     arquivos_ordenados = arquivos.sort_values(
         by='Tamanho do Arquivo', ascending=False)
 
-    arquivos_ordenados['Tamanho do Arquivo'] = arquivos_ordenados['Tamanho do Arquivo'].apply(
+    '''arquivos_ordenados['Tamanho do Arquivo'] = arquivos_ordenados['Tamanho do Arquivo'].apply(
         FuncoesNumericas.converter_byte)
 
     FuncoesDataFrame.gera_excel(
-        arquivos_ordenados, 'pastas_sharepoint')
+        arquivos_ordenados, 'pastas_sharepoint')'''
 
 
 def gerar_link(caminho) -> str:
@@ -55,7 +55,7 @@ def calcula_porcentagem(sucesso: int, erro: int, total: int) -> str:
     return porcentagem
 
 
-def excluir_versoes(links_pastas: list):
+def excluir_versoes(links_pastas: list, total: int):
     """Função para excluir as versões dos arquivos"""
 
     # Define as opções do navegador
@@ -65,12 +65,13 @@ def excluir_versoes(links_pastas: list):
 
     url_login = 'https://cgugovbr.sharepoint.com/sites/ou-sfc-dg-cgplag/_layouts/15/storman.aspx'
 
+    driver.maximize_window()
     driver.get(url_login)
-    input('Por favor, faça o login manualmente e, em seguida, pressione Enter para continuar...')
+
+    sg.popup('Pressione OK após fazer o login', title='Login')
 
     contador_exclusao = 0
     contador_erro = 0
-    total = len(links_pastas)
 
     # Percorre todos os links das pastas
     for link in links_pastas:
@@ -79,8 +80,6 @@ def excluir_versoes(links_pastas: list):
         sleep(2)
 
         # Tenta encontrar o link 'Histórico de Versões' e aguarda 5
-        # print(f'\nProcurando o botão "Histórico de Versões" em {link}...')
-        # print('=' * 200)
         try:
             elementos = driver.find_elements(
                 By.PARTIAL_LINK_TEXT, 'Histórico de Versões')
@@ -139,10 +138,6 @@ def excluir_versoes(links_pastas: list):
                     # Volta para a aba principal
                     driver.switch_to.window(handles[0])
 
-            else:
-                print('\nLink "Histórico de Versões" não foi encontrado na página')
-                print('=' * 200)
-
         except TimeoutException:
             print(f'\nTimeout ao tentar acessar {link}')
             print('=' * 200)
@@ -152,12 +147,36 @@ def excluir_versoes(links_pastas: list):
 
         print(porcentagem)
 
-    input('\nPressione Enter para encerrar a execução...')
-    print('=' * 200)
+    try:
+        url_lixeira = 'https://cgugovbr.sharepoint.com/sites/ou-sfc-dg-cgplag/_layouts/15/AdminRecycleBin.aspx?view=5'
+        driver.get(url_lixeira)
 
+        # Esvazia a lixeira
+        lixeira = driver.find_element(By.NAME, 'Esvaziar lixeira')
+
+        if lixeira:
+            lixeira.click()
+
+            try:
+                btn_confirma = driver.find_element(
+                    By.CLASS_NAME, 'od-Button-label')
+
+                if btn_confirma:
+                    btn_confirma.click()
+
+            except TimeoutException:
+                pass
+
+    except TimeoutException:
+        pass
+
+    sg.popup('Pressione OK para encerrar a execução')
     driver.quit()
 
 
 arquivos = pd.read_excel('arquivos_sharepoint.xlsx').convert_dtypes()
 
 links = arquivos['Link'].unique()
+total_links = len(arquivos['Link'])
+
+excluir_versoes(links_pastas=links, total=total_links)
