@@ -1,5 +1,4 @@
 import pandas as pd
-import webbrowser
 from funcoes import FuncoesNumericas, FuncoesDataFrame
 from urllib.parse import quote
 from selenium import webdriver
@@ -44,14 +43,14 @@ def gerar_link(caminho) -> str:
     return link
 
 
-def calcula_porcentagem(quantidade: int, total: int) -> str:
+def calcula_porcentagem(quantidade_sucesso: int, quantidade_erro: int, total: int) -> str:
     if total == 0:
         raise ValueError('O valor total não pode ser zero.')
 
-    calculo = (quantidade / total) * 100
+    calculo_sucesso = (quantidade_sucesso / total) * 100
+    calculo_erro = (quantidade_erro / total) * 100
 
-    porcentagem = f'''Já foram realizadas {
-        quantidade} exclusões, ou seja, {calculo:.2f}% do total {total}'''
+    porcentagem = f'''Já foram realizadas {quantidade_sucesso} exclusões, ou seja, {calculo_sucesso:.2f}% do total {total}. Houveram {quantidade_erro} erros, ou seja, {calculo_erro:.2f}% do total'''
 
     return porcentagem
 
@@ -69,7 +68,8 @@ def excluir_versoes(links_pastas: pd.Series):
     driver.get(url_login)
     input('Por favor, faça o login manualmente e, em seguida, pressione Enter para continuar...')
 
-    cont = 0
+    contador_exclusao = 0
+    contador_erro = 0
     total = len(links_pastas)
 
     # Percorre todos os links das pastas
@@ -122,10 +122,16 @@ def excluir_versoes(links_pastas: pd.Series):
                             alert = Alert(driver)
                             alert.accept()
 
+                            # Incrementa o contador de exclusões
+                            contador_exclusao += 1
+
                     except Exception as e:
                         print(
                             f'\nLink "Excluir Todas as Versões" não encontrado? {e}')
                         print('=' * 200)
+
+                        # Incrementa o contador de erros
+                        contador_erro += 1
 
                     # Fecha a nova aba
                     driver.close()
@@ -141,8 +147,10 @@ def excluir_versoes(links_pastas: pd.Series):
             print(f'\nTimeout ao tentar acessar {link}')
             print('=' * 200)
 
-        cont += 1
-        print(calcula_porcentagem(cont, total))
+        porcentagem = calcula_porcentagem(
+            contador_exclusao, contador_erro, total)
+
+        print(porcentagem)
 
     input('\nPressione Enter para encerrar a execução...')
     print('=' * 200)
