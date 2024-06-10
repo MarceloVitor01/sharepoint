@@ -50,7 +50,8 @@ def calcula_porcentagem(sucesso: int, erro: int, total: int) -> str:
     calculo_sucesso = (sucesso / total) * 100
     calculo_erro = (erro / total) * 100
 
-    porcentagem = f'''Já foram realizadas {sucesso} exclusões, ou seja, {calculo_sucesso:.2f}% do total {total}. Houveram {erro} erros, ou seja, {calculo_erro:.2f}% do total'''
+    porcentagem = f'''Já foram realizadas {sucesso} exclusões, ou seja, {calculo_sucesso:.2f}% do total {
+        total}. Houveram {erro} erros, ou seja, {calculo_erro:.2f}% do total'''
 
     return porcentagem
 
@@ -178,7 +179,10 @@ def excluir_versoes(links_pastas: list, total: int):
 
 
 print(f'\n{"-" * 200}\nLendo o arquivo...')
-arquivos = pd.read_excel('arquivos_sharepoint.xlsx').convert_dtypes()
+
+local_arquivo = sg.popup_get_file('Selecione o local do arquivo .xlsx')
+
+arquivos = pd.read_excel(local_arquivo).convert_dtypes()
 
 links = arquivos['Link'].unique()
 total_links = len(arquivos['Link'])
