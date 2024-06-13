@@ -74,112 +74,121 @@ def excluir_versoes(links_pastas: list, total: int):
     contador_exclusao = 0
     contador_erro = 0
 
-    # Percorre todos os links das pastas
-    for link in links_pastas:
-        # Acessa o link da pasta e aguarda 15s
-        driver.get(link)
-        sleep(0.5)
+    with open('log_exclusao.txt', 'w', encoding='utf-8') as log:
+        # Percorre todos os links das pastas
+        for link in links_pastas:
+            # Acessa o link da pasta e aguarda 15s
+            driver.get(link)
+            sleep(0.5)
 
-        # Tenta encontrar o link 'Histórico de Versões' e aguarda 5
-        try:
-            elementos = driver.find_elements(
-                By.PARTIAL_LINK_TEXT, 'Histórico de Versões')
-            # sleep(5)
+            # Tenta encontrar o link 'Histórico de Versões' e aguarda 5
+            try:
+                elementos = driver.find_elements(
+                    By.PARTIAL_LINK_TEXT, 'Histórico de Versões')
+                # sleep(5)
 
-            # Se encontrou, acessa o link para excluir as versões
-            if elementos:
-                # Percorre todos os elementos encontrados
-                for elemento in elementos:
-                    # Procura o 'href' do link
-                    link_elemento = elemento.get_attribute('href')
+                # Se encontrou, acessa o link para excluir as versões
+                if elementos:
+                    # Percorre todos os elementos encontrados
+                    for elemento in elementos:
+                        # Procura o 'href' do link
+                        link_elemento = elemento.get_attribute('href')
 
-                    # Abre o link em uma nova aba
-                    driver.execute_script(
-                        "window.open(arguments[0]);", link_elemento)
+                        # Abre o link em uma nova aba
+                        driver.execute_script(
+                            "window.open(arguments[0]);", link_elemento)
 
-                    # Espera até que a nova aba esteja disponível
-                    WebDriverWait(driver, 10).until(
-                        EC.number_of_windows_to_be(2))
+                        # Espera até que a nova aba esteja disponível
+                        WebDriverWait(driver, 10).until(
+                            EC.number_of_windows_to_be(2))
 
-                    # Obtém todas as alças (handles) das abas
-                    handles = driver.window_handles
-                    # Alterna para a nova aba
-                    driver.switch_to.window(handles[1])
+                        # Obtém todas as alças (handles) das abas
+                        handles = driver.window_handles
+                        # Alterna para a nova aba
+                        driver.switch_to.window(handles[1])
 
-                    # Procura o link 'Excluir Todas as Versões'
-                    try:
-                        link_excluir = driver.find_element(
-                            By.XPATH, "//a[@accesskey='X']")
-                        if link_excluir:
-                            # Clica no botão 'Excluir Todas as Versões'
-                            link_excluir.click()
+                        # Procura o link 'Excluir Todas as Versões'
+                        try:
+                            link_excluir = driver.find_element(
+                                By.XPATH, "//a[@accesskey='X']")
+                            if link_excluir:
+                                # Clica no botão 'Excluir Todas as Versões'
+                                link_excluir.click()
 
-                            # Lida com o popup de confirmação
-                            alert = Alert(driver)
-                            alert.accept()
+                                # Lida com o popup de confirmação
+                                alert = Alert(driver)
+                                alert.accept()
 
-                            # Incrementa o contador de exclusões
-                            contador_exclusao += 1
+                                # Incrementa o contador de exclusões
+                                contador_exclusao += 1
 
-                    except Exception as erro:
-                        # Gera a mensagem de erro
-                        mensagem = f'\n{"-" * 200}\n{erro}'
-                        print(mensagem)
-                        
+                        except Exception as erro:
+                            # Gera a mensagem de erro
+                            mensagem = f'\n{"-" * 200}\n{erro}'
+                            print(mensagem)
+                            log.write(mensagem)
+                            
 
-                        # Incrementa o contador de erros
-                        contador_erro += 1
+                            # Incrementa o contador de erros
+                            contador_erro += 1
 
-                    # Fecha a nova aba
-                    driver.close()
+                        # Fecha a nova aba
+                        driver.close()
 
-                    # Volta para a aba principal
-                    driver.switch_to.window(handles[0])
+                        # Volta para a aba principal
+                        driver.switch_to.window(handles[0])
 
-        except Exception as erro:
-            # Gera a mensagem de erro
-            mensagem = f'\n{"-" * 200}\n{erro}'
+            except Exception as erro:
+                # Gera a mensagem de erro
+                mensagem = f'\n{"-" * 200}\n{erro}'
+                print(mensagem)
+                log.write(mensagem)
+
+            porcentagem = calcula_porcentagem(contador_exclusao, contador_erro, total)
+
+            mensagem = f'\n{"-" * 200}\n{porcentagem}'
             print(mensagem)
-
-        porcentagem = calcula_porcentagem(contador_exclusao, contador_erro, total)
-
-        mensagem = f'\n{"-" * 200}\n{porcentagem}'
-        print(mensagem)
+            log.write(mensagem)
             
 
     driver.close()
 
 
 def esvaziar_lixeira():
-    try:
-        # Define as opções do navegador
-        options = webdriver.ChromeOptions()
-        options.add_experimental_option("detach", True)
-        driver = webdriver.Chrome(options=options)
-        
-        url_lixeira = 'https://cgugovbr.sharepoint.com/sites/ou-sfc-dg-cgplag/_layouts/15/AdminRecycleBin.aspx?view=5'
-        driver.get(url_lixeira)
+    with open('log.txt', 'a', encoding='utf-8') as log:
+        try:
+            # Define as opções do navegador
+            options = webdriver.ChromeOptions()
+            options.add_experimental_option("detach", True)
+            driver = webdriver.Chrome(options=options)
+            
+            url_lixeira = 'https://cgugovbr.sharepoint.com/sites/ou-sfc-dg-cgplag/_layouts/15/AdminRecycleBin.aspx?view=5'
+            driver.get(url_lixeira)
 
-        # Esvazia a lixeira
-        lixeira = driver.find_element(By.NAME, 'Esvaziar lixeira')
+            # Esvazia a lixeira
+            lixeira = driver.find_element(By.NAME, 'Esvaziar lixeira')
 
-        if lixeira:
-            lixeira.click()
+            if lixeira:
+                lixeira.click()
 
-            try:
-                btn_confirma = driver.find_element(
-                    By.CLASS_NAME, 'od-Button-label')
+                try:
+                    btn_confirma = driver.find_element(
+                        By.CLASS_NAME, 'od-Button-label')
 
-                if btn_confirma:
-                    btn_confirma.click()
+                    if btn_confirma:
+                        btn_confirma.click()
 
-            except Exception as erro:
-                mensagem = f'\n{"-" * 200}\n{erro}'
-                print(mensagem)
+                except Exception as erro:
+                    mensagem = f'\n{"-" * 200}\n{erro}'
+                    print(mensagem)
+                    log.write(mensagem)
 
-    except Exception as erro:
-        mensagem = f'\n{"-" * 200}\n{erro}'
-        print(mensagem)
+        except Exception as erro:
+            mensagem = f'\n{"-" * 200}\n{erro}'
+            print(mensagem)
+            log.write(mensagem)
+
+    driver.close()
 
 
 def tela_inicial():
@@ -222,31 +231,6 @@ def atualiza_log(janela: sg.Window, mensagem: str):
     texto_log = janela['-LOG-'].get()
     texto_log += f'{mensagem}\n'
     janela['-LOG-'].update(texto_log)
-
-
-def tela_execucao(local_arquivo_xlsx: str):
-    layout_execucao = [
-        [sg.Text('Executar a exclusão do histórico de versões do SharePoint?')],
-        [sg.Button('Iniciar exclusão'), sg.Button('Cancelar exclusão')]
-    ]
-
-    janela_execucao = sg.Window('Exclusão', layout=layout_execucao)
-
-    while True:
-        evento, valores = janela_execucao.read()
-
-        if evento == sg.WIN_CLOSED or evento == 'Cancelar':
-            break
-
-        if evento == 'Iniciar exclusão':
-            arquivos = pd.read_excel(local_arquivo_xlsx).convert_dtypes()
-
-            links = arquivos['Link'].unique()
-            total_links = len(arquivos['Link'])
-
-            excluir_versoes(links_pastas=links, total=total_links, janela=janela_execucao)
-
-    janela_execucao.close()
 
 
 tela_inicial()
