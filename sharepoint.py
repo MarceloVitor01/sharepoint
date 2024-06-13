@@ -204,8 +204,6 @@ def tela_inicial():
         evento, valores = janela_inicial.read()
 
         if evento == sg.WIN_CLOSED or evento == 'Cancelar':
-            esvaziar_lixeira()
-
             break
 
 
@@ -216,8 +214,6 @@ def tela_inicial():
 
             links = arquivos['Link'].unique()
             total_links = len(arquivos['Link'])
-
-            sleep(2)
 
             janela_inicial.close()
 
