@@ -56,7 +56,7 @@ def calcula_porcentagem(sucesso: int, erro: int, total: int) -> str:
     return porcentagem
 
 
-def excluir_versoes(links_pastas: list, total: int, janela: sg.Window):
+def excluir_versoes(links_pastas: list, total: int):
     """Função para excluir as versões dos arquivos"""
 
     # Define as opções do navegador
@@ -78,7 +78,7 @@ def excluir_versoes(links_pastas: list, total: int, janela: sg.Window):
     for link in links_pastas:
         # Acessa o link da pasta e aguarda 15s
         driver.get(link)
-        sleep(2)
+        sleep(0.5)
 
         # Tenta encontrar o link 'Histórico de Versões' e aguarda 5
         try:
@@ -117,7 +117,6 @@ def excluir_versoes(links_pastas: list, total: int, janela: sg.Window):
                             # Lida com o popup de confirmação
                             alert = Alert(driver)
                             alert.accept()
-                            sleep(2)
 
                             # Incrementa o contador de exclusões
                             contador_exclusao += 1
@@ -125,6 +124,7 @@ def excluir_versoes(links_pastas: list, total: int, janela: sg.Window):
                     except Exception as erro:
                         # Gera a mensagem de erro
                         mensagem = f'\n{"-" * 200}\n{erro}'
+                        print(mensagem)
                         
 
                         # Incrementa o contador de erros
@@ -139,21 +139,24 @@ def excluir_versoes(links_pastas: list, total: int, janela: sg.Window):
         except Exception as erro:
             # Gera a mensagem de erro
             mensagem = f'\n{"-" * 200}\n{erro}'
-            
+            print(mensagem)
 
-        if (contador_exclusao % 10 == 0):
+        porcentagem = calcula_porcentagem(contador_exclusao, contador_erro, total)
 
-            porcentagem = calcula_porcentagem(
-                contador_exclusao, contador_erro, total)
-
-            mensagem = f'\n{"-" * 200}\n{porcentagem}'
+        mensagem = f'\n{"-" * 200}\n{porcentagem}'
+        print(mensagem)
             
 
     driver.close()
 
 
-def esvaziar_lixeira(driver: webdriver.Chrome):
+def esvaziar_lixeira():
     try:
+        # Define as opções do navegador
+        options = webdriver.ChromeOptions()
+        options.add_experimental_option("detach", True)
+        driver = webdriver.Chrome(options=options)
+        
         url_lixeira = 'https://cgugovbr.sharepoint.com/sites/ou-sfc-dg-cgplag/_layouts/15/AdminRecycleBin.aspx?view=5'
         driver.get(url_lixeira)
 
@@ -172,16 +175,18 @@ def esvaziar_lixeira(driver: webdriver.Chrome):
 
             except Exception as erro:
                 mensagem = f'\n{"-" * 200}\n{erro}'
+                print(mensagem)
 
     except Exception as erro:
         mensagem = f'\n{"-" * 200}\n{erro}'
+        print(mensagem)
 
 
 def tela_inicial():
     layout_inicial = [
         [sg.Text('Selecione o local do arquivo "arquivos_sharepoint.xlsx')],
         [sg.Input(), sg.FileBrowse(button_text='Procurar', file_types=(("Arquivos do Excel", "*.xlsx"),))],
-        [sg.Button('Próxima etapa'), sg.Button('Cancelar')]
+        [sg.Button('Iniciar exclusão'), sg.Button('Cancelar')]
     ]
 
     janela_inicial = sg.Window('Limpeza Pasta SharePoint', layout=layout_inicial)
@@ -190,14 +195,25 @@ def tela_inicial():
         evento, valores = janela_inicial.read()
 
         if evento == sg.WIN_CLOSED or evento == 'Cancelar':
+            esvaziar_lixeira()
+
             break
 
-        if evento == 'Próxima etapa':
+
+        if evento == 'Iniciar exclusão':
             local_arquivo = str(valores[0])
             
+            arquivos = pd.read_excel(local_arquivo).convert_dtypes()
+
+            links = arquivos['Link'].unique()
+            total_links = len(arquivos['Link'])
+
+            sleep(2)
+
             janela_inicial.close()
 
-            tela_execucao(local_arquivo_xlsx=local_arquivo)
+            print('Excluindo as versões...')
+            excluir_versoes(links_pastas=links, total=total_links)
 
     janela_inicial.close()
 
@@ -211,8 +227,7 @@ def atualiza_log(janela: sg.Window, mensagem: str):
 def tela_execucao(local_arquivo_xlsx: str):
     layout_execucao = [
         [sg.Text('Executar a exclusão do histórico de versões do SharePoint?')],
-        [sg.Button('Iniciar exclusão'), sg.Button('Cancelar exclusão')],
-        [sg.Multiline(key='-LOG-', size=(50, 10), disabled=True)]
+        [sg.Button('Iniciar exclusão'), sg.Button('Cancelar exclusão')]
     ]
 
     janela_execucao = sg.Window('Exclusão', layout=layout_execucao)
